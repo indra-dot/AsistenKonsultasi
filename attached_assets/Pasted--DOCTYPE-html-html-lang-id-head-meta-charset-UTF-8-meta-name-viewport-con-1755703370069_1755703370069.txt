@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asisten Persiapan Kontrol Dokter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            body, .printable-area { margin: 0; padding: 0; box-shadow: none; border: none; }
+        }
+        .modal-backdrop { transition: opacity 0.3s ease; }
+        .modal-content { transition: transform 0.3s ease; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 flex items-center justify-center min-h-screen p-4">
+
+    <div id="wizard-container" class="w-full max-w-2xl bg-white rounded-xl shadow-lg p-6 md:p-8">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl md:text-3xl font-bold text-blue-600">Asisten Persiapan Kontrol Dokter</h1>
+            <p class="text-gray-500 mt-2">Siapkan diri Anda agar konsultasi lebih efektif.</p>
+        </div>
+
+        <div class="relative mb-8 no-print">
+            <div class="overflow-hidden h-2 text-xs flex rounded bg-blue-100">
+                <div id="progress-bar" style="width: 16.66%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500 transition-all duration-500"></div>
+            </div>
+        </div>
+
+        <!-- Step 1: Data Diri -->
+        <div id="step-1" class="step-content">
+            <h2 class="text-xl font-semibold mb-4">Langkah 1: Informasi Dasar</h2>
+            <p class="text-gray-600 mb-4">Isi data diri dan jadwal kontrol Anda.</p>
+            <div class="space-y-4">
+                <div>
+                    <label for="patient-name" class="block text-sm font-medium text-gray-700">Nama Pasien</label>
+                    <input type="text" id="patient-name" class="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500" placeholder="Contoh: Budi Santoso">
+                </div>
+                <div>
+                    <label for="doctor-name" class="block text-sm font-medium text-gray-700">Nama Dokter yang Dituju</label>
+                    <input type="text" id="doctor-name" class="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500" placeholder="Contoh: Dr. Annisa">
+                </div>
+                 <div>
+                    <label for="appointment-date" class="block text-sm font-medium text-gray-700">Tanggal & Waktu Kontrol</label>
+                    <input type="datetime-local" id="appointment-date" class="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500">
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Keluhan Utama -->
+        <div id="step-2" class="step-content hidden">
+            <h2 class="text-xl font-semibold mb-4">Langkah 2: Keluhan Utama</h2>
+            <textarea id="main-complaint" class="w-full h-40 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Jelaskan apa yang Anda rasakan..."></textarea>
+        </div>
+
+        <!-- Step 3: Daftar Obat & Suplemen -->
+        <div id="step-3" class="step-content hidden">
+            <h2 class="text-xl font-semibold mb-4">Langkah 3: Obat & Suplemen</h2>
+            <div id="medication-list" class="space-y-3 mb-4"></div>
+            <button id="add-medication" class="w-full bg-blue-100 text-blue-700 font-semibold py-2 px-4 rounded-lg hover:bg-blue-200 transition">+ Tambah Obat/Suplemen</button>
+        </div>
+
+        <!-- Step 4: Pertanyaan untuk Dokter -->
+        <div id="step-4" class="step-content hidden">
+            <h2 class="text-xl font-semibold mb-4">Langkah 4: Pertanyaan untuk Dokter</h2>
+            <div id="question-list" class="space-y-3 mb-4"></div>
+            <div class="flex gap-2">
+                <button id="add-question" class="w-full bg-blue-100 text-blue-700 font-semibold py-2 px-4 rounded-lg hover:bg-blue-200 transition">+ Tambah Pertanyaan</button>
+                <button id="open-question-library" class="w-full bg-purple-100 text-purple-700 font-semibold py-2 px-4 rounded-lg hover:bg-purple-200 transition">Pustaka Pertanyaan</button>
+            </div>
+        </div>
+        
+        <!-- Step 5: Upload File -->
+        <div id="step-5" class="step-content hidden">
+            <h2 class="text-xl font-semibold mb-4">Langkah 5: Unggah File Penting (Opsional)</h2>
+            <p class="text-gray-600 mb-4">Anda bisa mengunggah 1 file penting seperti hasil lab terakhir (PDF/JPG/PNG).</p>
+            <input type="file" id="file-upload" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+            <div id="file-info" class="mt-4 text-sm text-gray-600"></div>
+        </div>
+
+        <!-- Step 6: Ringkasan -->
+        <div id="step-6" class="step-content hidden">
+             <div id="summary-content" class="printable-area p-6 border border-gray-200 rounded-lg bg-white">
+                <h2 class="text-2xl font-bold text-center mb-2 text-blue-700">Ringkasan untuk Konsultasi</h2>
+                <p id="summary-date" class="text-center text-sm text-gray-500 mb-6"></p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 text-sm">
+                    <div class="bg-gray-50 p-3 rounded-md"><strong>Pasien:</strong> <span id="summary-patient-name"></span></div>
+                    <div class="bg-gray-50 p-3 rounded-md"><strong>Dokter:</strong> <span id="summary-doctor-name"></span></div>
+                    <div class="bg-gray-50 p-3 rounded-md col-span-1 sm:col-span-2"><strong>Jadwal:</strong> <span id="summary-appointment-date"></span></div>
+                </div>
+                <div class="mb-6"><h3 class="text-lg font-semibold border-b-2 border-blue-200 pb-2 mb-3">📋 Keluhan Utama</h3><p id="summary-complaint" class="text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded-md"></p></div>
+                <div class="mb-6"><h3 class="text-lg font-semibold border-b-2 border-blue-200 pb-2 mb-3">💊 Daftar Obat & Suplemen</h3><ul id="summary-medications" class="list-disc list-inside text-gray-700 space-y-2 bg-gray-50 p-3 rounded-md"></ul></div>
+                <div class="mb-6"><h3 class="text-lg font-semibold border-b-2 border-blue-200 pb-2 mb-3">❓ Pertanyaan untuk Dokter</h3><ul id="summary-questions" class="list-disc list-inside text-gray-700 space-y-2 bg-gray-50 p-3 rounded-md"></ul></div>
+                <div><h3 class="text-lg font-semibold border-b-2 border-blue-200 pb-2 mb-3">📎 Lampiran File</h3><div id="summary-file" class="text-gray-700 bg-gray-50 p-3 rounded-md"></div></div>
+            </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="mt-8 flex flex-wrap justify-between items-center gap-2 no-print">
+            <button id="prev-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg hover:bg-gray-300 transition disabled:opacity-50">Kembali</button>
+            <div id="main-actions" class="flex-grow flex justify-end gap-2">
+                 <button id="next-btn" class="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition">Lanjut</button>
+                 <button id="finish-btn" class="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 transition hidden">Selesai</button>
+            </div>
+            <div id="summary-actions" class="hidden flex-grow justify-end gap-2 flex-wrap">
+                <button id="add-to-calendar-btn" class="bg-orange-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-600 transition flex items-center">Tambah ke Kalender</button>
+                <button id="save-jpg-btn" class="bg-teal-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-700 transition flex items-center">Simpan JPG</button>
+                <button id="print-btn" class="bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 transition flex items-center" onclick="window.print()">Cetak</button>
+            </div>
+        </div>
+
+        <div class="text-center text-xs text-gray-400 mt-8 pt-4 border-t border-gray-100 no-print">
+            <p>©️ 2025 - IWP | Asisten Persiapan Kontrol Dokter</p>
+        </div>
+    </div>
+
+    <!-- Modal Pustaka Pertanyaan -->
+    <div id="question-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-backdrop opacity-0"><div class="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col modal-content scale-95"><div class="p-4 border-b"><h3 class="text-lg font-semibold">Pustaka Pertanyaan Umum</h3></div><div id="modal-question-list" class="p-4 overflow-y-auto space-y-2"></div><div class="p-4 border-t bg-gray-50 flex justify-end"><button id="close-modal-btn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 transition">Tutup</button></div></div></div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let currentStep = 1;
+        const totalSteps = 6;
+        const steps = document.querySelectorAll('.step-content');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const finishBtn = document.getElementById('finish-btn');
+        const saveJpgBtn = document.getElementById('save-jpg-btn');
+        const progressBar = document.getElementById('progress-bar');
+        const mainActions = document.getElementById('main-actions');
+        const summaryActions = document.getElementById('summary-actions');
+        const medicationList = document.getElementById('medication-list');
+        const questionList = document.getElementById('question-list');
+        const modal = document.getElementById('question-modal');
+        const modalContent = modal.querySelector('.modal-content');
+        const fileUpload = document.getElementById('file-upload');
+        const fileInfo = document.getElementById('file-info');
+        const addToCalendarBtn = document.getElementById('add-to-calendar-btn');
+
+        const commonQuestions = ["Apa diagnosis dari kondisi saya saat ini?", "Apa penyebab dari kondisi saya?", "Apakah ada tes atau pemeriksaan lebih lanjut yang saya perlukan?", "Apa saja pilihan pengobatan yang tersedia?", "Apa manfaat dan risiko dari setiap pilihan pengobatan?", "Apa efek samping dari obat yang diresepkan?", "Berapa lama saya harus minum obat ini?", "Apakah ada pantangan makanan atau aktivitas yang harus saya hindari?", "Apa yang harus saya lakukan jika gejala saya memburuk?", "Kapan saya harus kontrol kembali?"];
+
+        function updateWizard() {
+            steps.forEach((step, index) => step.classList.toggle('hidden', index + 1 !== currentStep));
+            progressBar.style.width = `${(currentStep / totalSteps) * 100}%`;
+            prevBtn.disabled = currentStep === 1;
+            const isSummaryStep = currentStep === totalSteps;
+            mainActions.classList.toggle('hidden', isSummaryStep);
+            summaryActions.classList.toggle('hidden', !isSummaryStep);
+            nextBtn.classList.toggle('hidden', currentStep >= totalSteps - 1);
+            finishBtn.classList.toggle('hidden', currentStep !== totalSteps - 1);
+            prevBtn.textContent = isSummaryStep ? "Edit Kembali" : "Kembali";
+            if (isSummaryStep) generateSummary();
+        }
+
+        function addItem(container, placeholder, value = '') {
+            const itemWrapper = document.createElement('div');
+            itemWrapper.className = 'flex items-center space-x-2';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'w-full p-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500';
+            input.placeholder = placeholder;
+            input.value = value;
+            input.addEventListener('input', saveDataToLocalStorage);
+            const removeBtn = document.createElement('button');
+            removeBtn.innerHTML = '&times;';
+            removeBtn.className = 'text-red-500 font-bold text-2xl hover:text-red-700 px-2';
+            removeBtn.onclick = () => { itemWrapper.remove(); saveDataToLocalStorage(); };
+            itemWrapper.appendChild(input);
+            itemWrapper.appendChild(removeBtn);
+            container.appendChild(itemWrapper);
+            if (!value) input.focus();
+        }
+        
+        function generateSummary() {
+            const data = JSON.parse(localStorage.getItem('doctorPrepData')) || {};
+            document.getElementById('summary-date').textContent = `Dibuat pada: ${new Date().toLocaleDateString('id-ID', { dateStyle: 'full' })}`;
+            document.getElementById('summary-patient-name').textContent = data.patientName || 'Belum diisi';
+            document.getElementById('summary-doctor-name').textContent = data.doctorName || 'Belum diisi';
+            const apptDate = data.appointmentDate ? new Date(data.appointmentDate).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short'}) : 'Belum diisi';
+            document.getElementById('summary-appointment-date').textContent = apptDate;
+            document.getElementById('summary-complaint').textContent = data.complaint || 'Belum diisi.';
+            
+            ['medications', 'questions'].forEach(type => {
+                const summaryEl = document.getElementById(`summary-${type}`);
+                summaryEl.innerHTML = '';
+                if (data[type] && data[type].length > 0) {
+                    data[type].forEach(item => {
+                        const li = document.createElement('li');
+                        li.textContent = item;
+                        summaryEl.appendChild(li);
+                    });
+                } else {
+                    summaryEl.innerHTML = `<li>Tidak ada ${type === 'medications' ? 'obat/suplemen' : 'pertanyaan'} yang diisi.</li>`;
+                }
+            });
+
+            const summaryFile = document.getElementById('summary-file');
+            if (data.fileData) {
+                summaryFile.innerHTML = `<a href="${data.fileData.url}" target="_blank" class="text-blue-600 hover:underline">${data.fileData.name}</a>`;
+            } else {
+                summaryFile.textContent = 'Tidak ada file yang diunggah.';
+            }
+        }
+
+        function saveDataToLocalStorage() {
+            const fileData = JSON.parse(localStorage.getItem('doctorPrepData'))?.fileData;
+            const data = {
+                patientName: document.getElementById('patient-name').value.trim(),
+                doctorName: document.getElementById('doctor-name').value.trim(),
+                appointmentDate: document.getElementById('appointment-date').value,
+                complaint: document.getElementById('main-complaint').value.trim(),
+                medications: Array.from(medicationList.querySelectorAll('input')).map(input => input.value.trim()).filter(Boolean),
+                questions: Array.from(questionList.querySelectorAll('input')).map(input => input.value.trim()).filter(Boolean),
+                fileData: fileData
+            };
+            localStorage.setItem('doctorPrepData', JSON.stringify(data));
+        }
+
+        function loadDataFromLocalStorage() {
+            const data = JSON.parse(localStorage.getItem('doctorPrepData'));
+            if (data) {
+                document.getElementById('patient-name').value = data.patientName || '';
+                document.getElementById('doctor-name').value = data.doctorName || '';
+                document.getElementById('appointment-date').value = data.appointmentDate || '';
+                document.getElementById('main-complaint').value = data.complaint || '';
+                
+                medicationList.innerHTML = '';
+                (data.medications || []).forEach(med => addItem(medicationList, 'Contoh: Amlodipine 5mg', med));
+                
+                questionList.innerHTML = '';
+                (data.questions || []).forEach(q => addItem(questionList, 'Contoh: Apa efek samping obat ini?', q));
+
+                if (data.fileData) {
+                    fileInfo.textContent = `File terpilih: ${data.fileData.name}`;
+                }
+            }
+            if (medicationList.children.length === 0) addItem(medicationList, 'Contoh: Amlodipine 5mg');
+            if (questionList.children.length === 0) addItem(questionList, 'Contoh: Apa efek samping obat ini?');
+        }
+
+        function setupModal() {
+            const modalQuestionList = document.getElementById('modal-question-list');
+            commonQuestions.forEach(q => {
+                const button = document.createElement('button');
+                button.textContent = q;
+                button.className = "w-full text-left p-2 rounded-md bg-gray-100 hover:bg-blue-100 transition";
+                button.onclick = () => {
+                    const existing = Array.from(questionList.querySelectorAll('input')).map(i => i.value.trim());
+                    if (!existing.includes(q)) {
+                        const firstInput = questionList.querySelector('input');
+                        if (firstInput && !firstInput.value.trim()) firstInput.parentElement.remove();
+                        addItem(questionList, '', q);
+                    }
+                    closeModal();
+                };
+                modalQuestionList.appendChild(button);
+            });
+        }
+
+        function openModal() {
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); modalContent.classList.remove('scale-95'); }, 10);
+        }
+
+        function closeModal() {
+            modal.classList.add('opacity-0');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        fileUpload.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const fileData = {
+                        name: file.name,
+                        url: event.target.result
+                    };
+                    const data = JSON.parse(localStorage.getItem('doctorPrepData')) || {};
+                    data.fileData = fileData;
+                    localStorage.setItem('doctorPrepData', JSON.stringify(data));
+                    fileInfo.textContent = `File terpilih: ${file.name}`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        addToCalendarBtn.addEventListener('click', function() {
+            const data = JSON.parse(localStorage.getItem('doctorPrepData')) || {};
+            if (!data.appointmentDate) {
+                alert('Silakan isi tanggal dan waktu kontrol terlebih dahulu di Langkah 1.');
+                return;
+            }
+            const startDate = new Date(data.appointmentDate);
+            const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // Durasi 1 jam
+            
+            const formatDate = (date) => date.toISOString().replace(/-|:|\.\d{3}/g, '');
+            
+            const title = encodeURIComponent(`Konsultasi dengan ${data.doctorName || 'Dokter'}`);
+            const details = encodeURIComponent(`Keluhan Utama:\n${data.complaint || 'Tidak ada'}`);
+            const dates = `${formatDate(startDate)}/${formatDate(endDate)}`;
+            
+            const googleCalendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}`;
+            window.open(googleCalendarUrl, '_blank');
+        });
+
+        // Event Listeners
+        document.getElementById('add-medication').addEventListener('click', () => addItem(medicationList, 'Contoh: Paracetamol 500mg'));
+        document.getElementById('add-question').addEventListener('click', () => addItem(questionList, 'Contoh: Apa efek samping obat ini?'));
+        document.getElementById('open-question-library').addEventListener('click', openModal);
+        document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+        nextBtn.addEventListener('click', () => { if (currentStep < totalSteps) { currentStep++; updateWizard(); } });
+        prevBtn.addEventListener('click', () => { if (currentStep > 1) { currentStep--; updateWizard(); } });
+        finishBtn.addEventListener('click', () => { currentStep = totalSteps; updateWizard(); });
+        
+        saveJpgBtn.addEventListener('click', () => {
+            html2canvas(document.getElementById('summary-content'), { scale: 2 })
+                .then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'Ringkasan_Konsultasi_Dokter.jpg';
+                    link.href = canvas.toDataURL('image/jpeg', 0.9);
+                    link.click();
+                });
+        });
+
+        document.querySelectorAll('input, textarea').forEach(el => el.addEventListener('input', saveDataToLocalStorage));
+
+        // Inisialisasi
+        loadDataFromLocalStorage();
+        setupModal();
+        updateWizard();
+    });
+    </script>
+</body>
+</html>
