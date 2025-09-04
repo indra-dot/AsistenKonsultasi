@@ -2,12 +2,13 @@ from io import BytesIO
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import datetime
+from PIL import Image as PILImage
 
 def get_common_questions():
     """Return list of common medical questions in Indonesian"""
@@ -134,6 +135,48 @@ def generate_pdf_summary(session_state):
     story.append(Paragraph("Lampiran File", heading_style))
     if session_state.uploaded_file:
         story.append(Paragraph(f"File terlampir: {session_state.uploaded_file.name}", normal_style))
+        story.append(Spacer(1, 6))
+        
+        # Check if uploaded file is an image
+        file_extension = session_state.uploaded_file.name.lower().split('.')[-1]
+        if file_extension in ['jpg', 'jpeg', 'png']:
+            try:
+                # Convert uploaded file to image
+                image_data = BytesIO(session_state.uploaded_file.getvalue())
+                image_data.seek(0)  # Reset pointer to beginning
+                
+                # Get original image dimensions first
+                pil_img = PILImage.open(image_data)
+                original_width, original_height = pil_img.size
+                
+                # Calculate safe dimensions for PDF
+                max_width = 3.5 * inch  # Conservative width
+                max_height = 2.5 * inch  # Conservative height
+                
+                # Calculate scaling factor to maintain aspect ratio
+                width_ratio = max_width / original_width
+                height_ratio = max_height / original_height
+                scale_factor = min(width_ratio, height_ratio, 0.8)  # Max 80% of original size
+                
+                # Calculate final dimensions
+                final_width = max(50, int(original_width * scale_factor))  # Minimum 50 pixels
+                final_height = max(50, int(original_height * scale_factor))  # Minimum 50 pixels
+                
+                # Reset image data pointer again
+                image_data.seek(0)
+                
+                # Create ReportLab Image with calculated dimensions
+                img = Image(image_data, width=final_width, height=final_height)
+                
+                story.append(img)
+                story.append(Spacer(1, 8))
+                
+            except Exception as e:
+                story.append(Paragraph(f"Gambar tersedia tetapi tidak dapat ditampilkan di PDF: {session_state.uploaded_file.name}", normal_style))
+                story.append(Spacer(1, 4))
+        
+        elif file_extension == 'pdf':
+            story.append(Paragraph("File PDF terlampir (tidak dapat ditampilkan dalam preview)", normal_style))
     else:
         story.append(Paragraph("Tidak ada file yang diunggah", normal_style))
     
