@@ -248,6 +248,13 @@ elif st.session_state.current_step == 6:
     st.subheader("📎 Lampiran File")
     if st.session_state.uploaded_file:
         st.write(f"📄 {st.session_state.uploaded_file.name}")
+        
+        # Show image preview if uploaded file is an image
+        file_extension = st.session_state.uploaded_file.name.lower().split('.')[-1]
+        if file_extension in ['jpg', 'jpeg', 'png']:
+            st.image(st.session_state.uploaded_file, caption="Preview Gambar", width=400)
+        elif file_extension == 'pdf':
+            st.info("File PDF terlampir (preview tidak tersedia)")
     else:
         st.write("*Tidak ada file yang diunggah*")
     
